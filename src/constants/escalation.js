@@ -79,23 +79,31 @@ export const QUESTION_PHASE_CONTENT = {
 export const PHASE_AUDIO = {
   [PHASES.NO_LEVEL_1]: {
     src: resolveLocalAsset('sad.mp3'),
+    fallbackSources: ['/assets/sad.mp3', '/assets/cat-sad.mp3'],
     volume: 0.28,
     loop: false,
+    fallbackCue: 'sad',
   },
   [PHASES.NO_LEVEL_2]: {
     src: resolveLocalAsset('drama.mp3'),
+    fallbackSources: ['/assets/drama.mp3', '/assets/cat-drama.mp3'],
     volume: 0.32,
     loop: false,
+    fallbackCue: 'drama',
   },
   [PHASES.NO_LEVEL_3]: {
     src: resolveLocalAsset('war.mp3'),
+    fallbackSources: ['/assets/war.mp3', '/assets/cat-war.mp3'],
     volume: 0.38,
     loop: false,
+    fallbackCue: 'war',
   },
   [PHASES.NO_LEVEL_4]: {
     src: resolveLocalAsset('tension-loop.mp3'),
+    fallbackSources: ['/assets/tension-loop.mp3', '/assets/tension.mp3'],
     volume: 0.18,
     loop: true,
+    fallbackCue: 'tension',
   },
 };
 

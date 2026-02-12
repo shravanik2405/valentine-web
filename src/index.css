@@ -34,13 +34,14 @@
     @apply box-border;
   }
 
+  html,
   body {
-    @apply m-0 min-h-screen font-body text-ink antialiased;
+    @apply m-0 min-h-screen font-body text-ink antialiased overflow-y-hidden;
     background: linear-gradient(165deg, rgb(var(--color-bg-start)) 0%, rgb(var(--color-bg-middle)) 48%, rgb(var(--color-bg-end)) 100%);
   }
 
   #root {
-    @apply min-h-screen;
+    @apply min-h-screen overflow-y-hidden;
   }
 
   h1,

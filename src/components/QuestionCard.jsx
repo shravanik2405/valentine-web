@@ -49,10 +49,7 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
     <article
       className={`mew-shell question-card animate-card-in ${cardShakeClass || ''} ${yesTransitioning ? 'yes-transitioning' : ''}`.trim()}
       aria-labelledby="valentine-question-title"
-    >
-      <div className={`question-chip-wrap ${chipText ? 'visible' : ''}`.trim()}>
-        {chipText ? <span className="question-chip">{chipText}</span> : null}
-      </div>
+   >
 
       <figure className="hero-frame">
         {!hasMediaError ? (

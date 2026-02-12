@@ -25,33 +25,54 @@ export function createAudioManager() {
   const play = (src, options = {}) => {
     stop();
 
-    if (!src) {
+    const sources = Array.isArray(src) ? src.filter(Boolean) : [src].filter(Boolean);
+    if (sources.length === 0) {
+      options.onError?.();
       return;
     }
 
     const token = audioToken;
-    const audio = new Audio(src);
-    audio.preload = 'auto';
-    audio.loop = Boolean(options.loop);
-    audio.volume = clampVolume(options.volume ?? 1);
 
-    currentAudio = audio;
+    const tryPlay = (index) => {
+      if (index >= sources.length || audioToken !== token) {
+        if (audioToken === token) {
+          options.onError?.();
+        }
+        return;
+      }
 
-    const clearIfCurrent = () => {
-      if (audioToken === token && currentAudio === audio && !audio.loop) {
+      const audio = new Audio(sources[index]);
+      audio.preload = 'auto';
+      audio.loop = Boolean(options.loop);
+      audio.volume = clampVolume(options.volume ?? 1);
+      currentAudio = audio;
+
+      const clearIfCurrent = () => {
+        if (audioToken === token && currentAudio === audio && !audio.loop) {
+          currentAudio = null;
+        }
+      };
+
+      const tryNextSource = () => {
+        if (audioToken !== token || currentAudio !== audio) {
+          return;
+        }
         currentAudio = null;
+        tryPlay(index + 1);
+      };
+
+      audio.addEventListener('ended', clearIfCurrent, { once: true });
+      audio.addEventListener('error', tryNextSource, { once: true });
+
+      const playPromise = audio.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {
+          tryNextSource();
+        });
       }
     };
 
-    audio.addEventListener('ended', clearIfCurrent, { once: true });
-    audio.addEventListener('error', clearIfCurrent, { once: true });
-
-    const playPromise = audio.play();
-    if (playPromise?.catch) {
-      playPromise.catch(() => {
-        clearIfCurrent();
-      });
-    }
+    tryPlay(0);
   };
 
   return { play, stop };

@@ -62,6 +62,8 @@ function App() {
   const [compatibilityScore, setCompatibilityScore] = useState(() => getRandomCompatibilityScore());
 
   const audioManagerRef = useRef(createAudioManager());
+  const cueContextRef = useRef(null);
+  const cueNodesRef = useRef([]);
   const cardShakeTimerRef = useRef(null);
   const cardShakeRafRef = useRef(null);
   const screenShakeTimerRef = useRef(null);
@@ -94,6 +96,24 @@ function App() {
         clearTimeout(yesTimerRef.current);
       }
       audioManagerRef.current.stop();
+      cueNodesRef.current.forEach(({ oscillator, gain }) => {
+        try {
+          oscillator.stop();
+        } catch {
+          // oscillator might already be stopped
+        }
+        try {
+          oscillator.disconnect();
+          gain.disconnect();
+        } catch {
+          // ignore disconnect errors
+        }
+      });
+      cueNodesRef.current = [];
+
+      if (cueContextRef.current) {
+        cueContextRef.current.close().catch(() => {});
+      }
     },
     [],
   );
@@ -166,16 +186,115 @@ function App() {
     }, 360);
   };
 
+  const stopFallbackCue = () => {
+    cueNodesRef.current.forEach(({ oscillator, gain }) => {
+      try {
+        oscillator.stop();
+      } catch {
+        // oscillator might already be stopped
+      }
+      try {
+        oscillator.disconnect();
+        gain.disconnect();
+      } catch {
+        // ignore disconnect errors
+      }
+    });
+    cueNodesRef.current = [];
+  };
+
+  const getCueContext = () => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    if (!cueContextRef.current) {
+      cueContextRef.current = new AudioContextClass();
+    }
+
+    if (cueContextRef.current.state === 'suspended') {
+      cueContextRef.current.resume().catch(() => {});
+    }
+
+    return cueContextRef.current;
+  };
+
+  const scheduleCueTone = ({ type = 'sine', from, to, duration, volume = 0.04, startOffset = 0 }) => {
+    const context = getCueContext();
+    if (!context) {
+      return;
+    }
+
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const startTime = context.currentTime + startOffset;
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(from, startTime);
+    if (to) {
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(36, to), startTime + duration);
+    }
+
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.04);
+
+    if (duration) {
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+    }
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startTime);
+
+    if (duration) {
+      oscillator.stop(startTime + duration + 0.03);
+    }
+
+    cueNodesRef.current.push({ oscillator, gain });
+  };
+
+  const playFallbackCue = (cueType) => {
+    stopFallbackCue();
+
+    if (cueType === 'sad') {
+      scheduleCueTone({ type: 'triangle', from: 412, to: 212, duration: 0.64, volume: 0.03 });
+      return;
+    }
+
+    if (cueType === 'drama') {
+      scheduleCueTone({ type: 'sawtooth', from: 280, to: 198, duration: 0.4, volume: 0.035 });
+      scheduleCueTone({ type: 'triangle', from: 226, to: 164, duration: 0.52, volume: 0.03, startOffset: 0.14 });
+      return;
+    }
+
+    if (cueType === 'war') {
+      scheduleCueTone({ type: 'square', from: 162, to: 78, duration: 0.7, volume: 0.05 });
+      scheduleCueTone({ type: 'sawtooth', from: 204, to: 92, duration: 0.72, volume: 0.04, startOffset: 0.05 });
+      return;
+    }
+
+    if (cueType === 'tension') {
+      scheduleCueTone({ type: 'sawtooth', from: 74, volume: 0.015 });
+      scheduleCueTone({ type: 'sine', from: 112, volume: 0.008, startOffset: 0.01 });
+    }
+  };
+
   const playPhaseAudio = (nextPhase) => {
     const track = PHASE_AUDIO[nextPhase];
     if (!track) {
       audioManagerRef.current.stop();
+      stopFallbackCue();
       return;
     }
 
-    audioManagerRef.current.play(track.src, {
+    stopFallbackCue();
+    audioManagerRef.current.play([track.src, ...(track.fallbackSources ?? [])], {
       loop: track.loop,
       volume: track.volume,
+      onError: () => {
+        playFallbackCue(track.fallbackCue);
+      },
     });
   };
 
@@ -196,6 +315,7 @@ function App() {
     }
 
     audioManagerRef.current.stop();
+    stopFallbackCue();
 
     if (yesTimerRef.current) {
       clearTimeout(yesTimerRef.current);
@@ -248,6 +368,7 @@ function App() {
     }
 
     audioManagerRef.current.stop();
+    stopFallbackCue();
     setPhase(PHASES.ASK);
     setNoCount(0);
     setCardShakeLevel(0);
