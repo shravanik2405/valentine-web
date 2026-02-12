@@ -1,231 +1,308 @@
-import { useEffect, useRef, useState } from 'react';
-import { FloatingDecor } from './components/FloatingDecor';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { QuestionCard } from './components/QuestionCard';
 import { ResultPanel } from './components/ResultPanel';
+import {
+  PHASE_AUDIO,
+  PHASES,
+  getPhaseFromNoCount,
+  getShakeLevelForPhase,
+  isWarPhase,
+} from './constants/escalation';
+import { createAudioManager } from './utils/audioManager';
 
-const ITERATING_NO_COPY = ['are you sure?', "that's suspicious.", 'paws reconsidered?', 'try again hooman.'];
+const DEBRIS_PARTICLES = [
+  { left: '8%', size: '0.6rem', delay: '0s', duration: '7.4s', drift: '-26px' },
+  { left: '17%', size: '0.78rem', delay: '0.25s', duration: '8.1s', drift: '22px' },
+  { left: '28%', size: '0.56rem', delay: '0.65s', duration: '7.8s', drift: '-18px' },
+  { left: '39%', size: '0.68rem', delay: '0.35s', duration: '8.8s', drift: '20px' },
+  { left: '49%', size: '0.52rem', delay: '0.1s', duration: '7.1s', drift: '-12px' },
+  { left: '57%', size: '0.82rem', delay: '0.55s', duration: '8.6s', drift: '28px' },
+  { left: '69%', size: '0.6rem', delay: '0.45s', duration: '7.5s', drift: '-22px' },
+  { left: '78%', size: '0.72rem', delay: '0.2s', duration: '8.2s', drift: '18px' },
+  { left: '90%', size: '0.5rem', delay: '0.4s', duration: '7.9s', drift: '-15px' },
+];
+
+const SCENE_CLASS_BY_PHASE = {
+  [PHASES.ASK]: 'scene-ask',
+  [PHASES.NO_LEVEL_1]: 'scene-no-1',
+  [PHASES.NO_LEVEL_2]: 'scene-no-2',
+  [PHASES.NO_LEVEL_3]: 'scene-no-3',
+  [PHASES.NO_LEVEL_4]: 'scene-no-4',
+  [PHASES.YES]: 'scene-yes',
+};
+
+function getRandomCompatibilityScore() {
+  return 92 + Math.floor(Math.random() * 9);
+}
+
+function getShakeClass(prefix, level) {
+  if (level === 1) {
+    return `${prefix}-soft`;
+  }
+
+  if (level === 2) {
+    return `${prefix}-medium`;
+  }
+
+  if (level === 3) {
+    return `${prefix}-hard`;
+  }
+
+  return '';
+}
 
 function App() {
-  const [answer, setAnswer] = useState(null);
+  const [phase, setPhase] = useState(PHASES.ASK);
   const [noCount, setNoCount] = useState(0);
-  const [isShaking, setIsShaking] = useState(false);
+  const [cardShakeLevel, setCardShakeLevel] = useState(0);
+  const [screenShakeLevel, setScreenShakeLevel] = useState(0);
+  const [isFlashActive, setIsFlashActive] = useState(false);
+  const [yesTransitioning, setYesTransitioning] = useState(false);
+  const [isPawBurstActive, setIsPawBurstActive] = useState(false);
+  const [compatibilityScore, setCompatibilityScore] = useState(() => getRandomCompatibilityScore());
 
-  const audioContextRef = useRef(null);
-  const activeOscillatorsRef = useRef([]);
-  const shakeTimerRef = useRef(null);
-  const shakeRafRef = useRef(null);
-
-  const stage = Math.min(noCount, 5);
+  const audioManagerRef = useRef(createAudioManager());
+  const cardShakeTimerRef = useRef(null);
+  const cardShakeRafRef = useRef(null);
+  const screenShakeTimerRef = useRef(null);
+  const screenShakeRafRef = useRef(null);
+  const flashTimerRef = useRef(null);
+  const flashRafRef = useRef(null);
+  const yesTimerRef = useRef(null);
 
   useEffect(
     () => () => {
-      if (shakeTimerRef.current) {
-        clearTimeout(shakeTimerRef.current);
+      if (cardShakeTimerRef.current) {
+        clearTimeout(cardShakeTimerRef.current);
       }
-      if (shakeRafRef.current) {
-        cancelAnimationFrame(shakeRafRef.current);
+      if (cardShakeRafRef.current) {
+        cancelAnimationFrame(cardShakeRafRef.current);
       }
-      activeOscillatorsRef.current.forEach((oscillator) => {
-        try {
-          oscillator.stop();
-        } catch {
-          // oscillator may already be stopped
-        }
-        try {
-          oscillator.disconnect();
-        } catch {
-          // ignore
-        }
-      });
-      activeOscillatorsRef.current = [];
-
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
+      if (screenShakeTimerRef.current) {
+        clearTimeout(screenShakeTimerRef.current);
       }
+      if (screenShakeRafRef.current) {
+        cancelAnimationFrame(screenShakeRafRef.current);
+      }
+      if (flashTimerRef.current) {
+        clearTimeout(flashTimerRef.current);
+      }
+      if (flashRafRef.current) {
+        cancelAnimationFrame(flashRafRef.current);
+      }
+      if (yesTimerRef.current) {
+        clearTimeout(yesTimerRef.current);
+      }
+      audioManagerRef.current.stop();
     },
     [],
   );
 
-  const getAudioContext = () => {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) {
-      return null;
+  const sceneClass = SCENE_CLASS_BY_PHASE[phase];
+  const cardShakeClass = getShakeClass('card-shake', cardShakeLevel);
+  const screenShakeClass = getShakeClass('screen-shake', screenShakeLevel);
+  const shouldShowCracks =
+    !yesTransitioning &&
+    (phase === PHASES.NO_LEVEL_2 || phase === PHASES.NO_LEVEL_3 || phase === PHASES.NO_LEVEL_4);
+  const shouldShowDebris = !yesTransitioning && isWarPhase(phase);
+
+  const triggerShake = ({ card, screen }) => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      return;
     }
 
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContextClass();
-    }
-
-    const context = audioContextRef.current;
-    if (context.state === 'suspended') {
-      context.resume().catch(() => {});
-    }
-
-    return context;
-  };
-
-  const clearAudio = () => {
-    activeOscillatorsRef.current.forEach((oscillator) => {
-      try {
-        oscillator.stop();
-      } catch {
-        // oscillator may already be stopped
+    if (card > 0) {
+      setCardShakeLevel(0);
+      if (cardShakeRafRef.current) {
+        cancelAnimationFrame(cardShakeRafRef.current);
       }
-      try {
-        oscillator.disconnect();
-      } catch {
-        // ignore
+      cardShakeRafRef.current = requestAnimationFrame(() => {
+        setCardShakeLevel(card);
+      });
+      if (cardShakeTimerRef.current) {
+        clearTimeout(cardShakeTimerRef.current);
       }
+      cardShakeTimerRef.current = setTimeout(() => {
+        setCardShakeLevel(0);
+      }, 420);
+    }
+
+    if (screen > 0) {
+      setScreenShakeLevel(0);
+      if (screenShakeRafRef.current) {
+        cancelAnimationFrame(screenShakeRafRef.current);
+      }
+      screenShakeRafRef.current = requestAnimationFrame(() => {
+        setScreenShakeLevel(screen);
+      });
+      if (screenShakeTimerRef.current) {
+        clearTimeout(screenShakeTimerRef.current);
+      }
+      screenShakeTimerRef.current = setTimeout(() => {
+        setScreenShakeLevel(0);
+      }, 460);
+    }
+  };
+
+  const triggerFlash = () => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      return;
+    }
+
+    setIsFlashActive(false);
+    if (flashRafRef.current) {
+      cancelAnimationFrame(flashRafRef.current);
+    }
+    flashRafRef.current = requestAnimationFrame(() => {
+      setIsFlashActive(true);
     });
-    activeOscillatorsRef.current = [];
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current);
+    }
+    flashTimerRef.current = setTimeout(() => {
+      setIsFlashActive(false);
+    }, 360);
   };
 
-  const scheduleTone = ({
-    type = 'sine',
-    from,
-    to,
-    duration,
-    volume,
-    detune = 0,
-    startOffset = 0,
-  }) => {
-    const context = getAudioContext();
-    if (!context) {
+  const playPhaseAudio = (nextPhase) => {
+    const track = PHASE_AUDIO[nextPhase];
+    if (!track) {
+      audioManagerRef.current.stop();
       return;
     }
 
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const startTime = context.currentTime + startOffset;
-
-    oscillator.type = type;
-    oscillator.detune.value = detune;
-
-    oscillator.frequency.setValueAtTime(from, startTime);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(45, to), startTime + duration);
-
-    gain.gain.setValueAtTime(0.0001, startTime);
-    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration + 0.03);
-
-    activeOscillatorsRef.current.push(oscillator);
-  };
-
-  const playStageAudio = (nextStage) => {
-    clearAudio();
-
-    if (nextStage === 1) {
-      scheduleTone({ type: 'sawtooth', from: 392, to: 215, duration: 0.72, volume: 0.075 });
-      scheduleTone({ type: 'triangle', from: 311, to: 188, duration: 0.72, volume: 0.064, detune: 7 });
-      return;
-    }
-
-    if (nextStage === 2) {
-      scheduleTone({ type: 'triangle', from: 236, to: 178, duration: 1.4, volume: 0.045 });
-      scheduleTone({ type: 'sine', from: 352, to: 262, duration: 1.18, volume: 0.03, startOffset: 0.06 });
-      scheduleTone({ type: 'sine', from: 176, to: 138, duration: 1.35, volume: 0.022, startOffset: 0.03 });
-      return;
-    }
-
-    if (nextStage === 3) {
-      scheduleTone({ type: 'sawtooth', from: 284, to: 124, duration: 0.9, volume: 0.088 });
-      scheduleTone({ type: 'triangle', from: 205, to: 95, duration: 0.92, volume: 0.072, detune: 8 });
-      return;
-    }
-
-    if (nextStage === 4) {
-      scheduleTone({ type: 'sawtooth', from: 332, to: 108, duration: 1.1, volume: 0.11 });
-      scheduleTone({ type: 'square', from: 242, to: 82, duration: 1.1, volume: 0.082, detune: -4 });
-      scheduleTone({ type: 'triangle', from: 168, to: 72, duration: 1.18, volume: 0.064, detune: 11, startOffset: 0.04 });
-      return;
-    }
-
-    if (nextStage === 5) {
-      scheduleTone({ type: 'sine', from: 320, to: 392, duration: 0.5, volume: 0.033 });
-      scheduleTone({ type: 'sine', from: 392, to: 523, duration: 0.48, volume: 0.026, startOffset: 0.06 });
-    }
-  };
-
-  const triggerShake = () => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
-
-    setIsShaking(false);
-    if (shakeRafRef.current) {
-      cancelAnimationFrame(shakeRafRef.current);
-    }
-    shakeRafRef.current = requestAnimationFrame(() => {
-      setIsShaking(true);
+    audioManagerRef.current.play(track.src, {
+      loop: track.loop,
+      volume: track.volume,
     });
+  };
 
-    if (shakeTimerRef.current) {
-      clearTimeout(shakeTimerRef.current);
+  const finalizeYesState = () => {
+    setPhase(PHASES.YES);
+    setNoCount(0);
+    setCardShakeLevel(0);
+    setScreenShakeLevel(0);
+    setIsFlashActive(false);
+    setYesTransitioning(false);
+    setIsPawBurstActive(false);
+    setCompatibilityScore(getRandomCompatibilityScore());
+  };
+
+  const handleYes = ({ triggeredFromNoLevel4 = false } = {}) => {
+    if (yesTransitioning || phase === PHASES.YES) {
+      return;
     }
-    shakeTimerRef.current = setTimeout(() => {
-      setIsShaking(false);
-    }, 430);
+
+    audioManagerRef.current.stop();
+
+    if (yesTimerRef.current) {
+      clearTimeout(yesTimerRef.current);
+    }
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      finalizeYesState();
+      return;
+    }
+
+    setYesTransitioning(true);
+    setIsPawBurstActive(true);
+
+    const transitionDuration = triggeredFromNoLevel4 ? 900 : 620;
+    yesTimerRef.current = setTimeout(() => {
+      finalizeYesState();
+    }, transitionDuration);
   };
 
   const handleNo = () => {
-    setNoCount((prev) => {
-      const next = Math.min(prev + 1, 5);
-      playStageAudio(next);
+    if (phase === PHASES.YES || yesTransitioning) {
+      return;
+    }
 
-      if (next === 3) {
-        triggerShake();
-      }
+    if (phase === PHASES.NO_LEVEL_4) {
+      handleYes({ triggeredFromNoLevel4: true });
+      return;
+    }
 
-      return next;
-    });
-  };
+    const nextNoCount = Math.min(noCount + 1, 4);
+    const nextPhase = getPhaseFromNoCount(nextNoCount);
 
-  const handleYes = () => {
-    setAnswer('yes');
-    setNoCount(0);
-    setIsShaking(false);
-    clearAudio();
+    setNoCount(nextNoCount);
+    setPhase(nextPhase);
+
+    const shakeLevel = getShakeLevelForPhase(nextPhase);
+    triggerShake(shakeLevel);
+
+    if (nextPhase === PHASES.NO_LEVEL_3) {
+      triggerFlash();
+    }
+
+    playPhaseAudio(nextPhase);
   };
 
   const handleReset = () => {
-    setAnswer(null);
+    if (yesTimerRef.current) {
+      clearTimeout(yesTimerRef.current);
+    }
+
+    audioManagerRef.current.stop();
+    setPhase(PHASES.ASK);
     setNoCount(0);
-    setIsShaking(false);
-    clearAudio();
+    setCardShakeLevel(0);
+    setScreenShakeLevel(0);
+    setIsFlashActive(false);
+    setYesTransitioning(false);
+    setIsPawBurstActive(false);
+    setCompatibilityScore(getRandomCompatibilityScore());
   };
 
-  const iteratingCopy = stage > 0 ? ITERATING_NO_COPY[(stage - 1) % ITERATING_NO_COPY.length] : '';
-  const noButtonLabel = iteratingCopy || 'No';
-  const stageMessage = iteratingCopy;
-
-  const chaosClass =
-    stage === 2 ? 'chaos-suspicious' : stage === 3 ? 'chaos-angry' : stage === 4 ? 'chaos-rage' : '';
+  const shellClassName = useMemo(
+    () =>
+      `app-shell relative isolate min-h-screen overflow-hidden px-gutter py-section ${sceneClass} ${
+        screenShakeClass || ''
+      } ${yesTransitioning ? 'peace-restoring' : ''}`.trim(),
+    [sceneClass, screenShakeClass, yesTransitioning],
+  );
 
   return (
-    <div
-      className={`app-shell relative isolate min-h-screen overflow-hidden px-gutter py-section ${chaosClass} ${
-        isShaking ? 'chaos-shake' : ''
-      }`.trim()}
-    >
-      <FloatingDecor chaosLevel={noCount} />
+    <div className={shellClassName}>
+      <div className={`scene-flash ${isFlashActive ? 'scene-flash-active' : ''}`.trim()} aria-hidden="true" />
+      <div className={`scene-cracks ${shouldShowCracks ? 'scene-cracks-active' : ''}`.trim()} aria-hidden="true">
+        <span className="crack-fragment crack-fragment-1" />
+        <span className="crack-fragment crack-fragment-2" />
+        <span className="crack-fragment crack-fragment-3" />
+      </div>
+      <div className={`scene-debris ${shouldShowDebris ? 'scene-debris-active' : ''}`.trim()} aria-hidden="true">
+        {DEBRIS_PARTICLES.map((particle, index) => (
+          <span
+            key={`${particle.left}-${particle.delay}-${index}`}
+            className="debris-particle"
+            style={{
+              '--debris-left': particle.left,
+              '--debris-size': particle.size,
+              '--debris-delay': particle.delay,
+              '--debris-duration': particle.duration,
+              '--debris-drift': particle.drift,
+            }}
+          />
+        ))}
+      </div>
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[32rem] items-center justify-center">
-        <section className="w-full" aria-label="Valentine prompt">
-          {answer ? (
-            <ResultPanel answer={answer} onReset={handleReset} />
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[34rem] items-center justify-center">
+        <section className="w-full" aria-label="Mewentine prompt">
+          {phase === PHASES.YES ? (
+            <ResultPanel compatibilityScore={compatibilityScore} onReset={handleReset} />
           ) : (
             <QuestionCard
+              phase={phase}
+              noCount={noCount}
               onYes={handleYes}
               onNo={handleNo}
-              noCount={noCount}
-              noButtonLabel={noButtonLabel}
-              stageMessage={stageMessage}
+              yesTransitioning={yesTransitioning}
+              cardShakeClass={cardShakeClass}
+              pawBurstActive={isPawBurstActive}
             />
           )}
         </section>
