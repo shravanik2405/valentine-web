@@ -12,6 +12,7 @@ const LOCAL_ASSET_URLS = import.meta.glob('../assets/*.{gif,mp3,wav,ogg,m4a,webm
   eager: true,
   import: 'default',
 });
+const HAPPY_GIF_FALLBACK_URL = 'https://media.giphy.com/media/uKvAWApE3vWL1MAASf/giphy.gif';
 
 function resolveLocalAsset(fileName) {
   const key = `../assets/${fileName}`;
@@ -29,7 +30,7 @@ export const QUESTION_PHASE_CONTENT = {
     noLabel: 'No',
     media: {
       src: resolveLocalAsset('cat-happy.gif'),
-      fallbackSources: ['/assets/cat-happy.gif', '/assets/happy-cat.gif', 'https://media.giphy.com/media/v6aOjy0Qo1fIA/giphy.gif'],
+      fallbackSources: ['/assets/cat-happy.gif', '/assets/happy-cat.gif', HAPPY_GIF_FALLBACK_URL],
       alt: 'A sweet kitten waiting for your answer',
       fallbackEmoji: '🐱',
     },
@@ -125,7 +126,7 @@ export function getShakeLevelForPhase(phase) {
 
 export const HAPPY_CAT_MEDIA = {
   src: resolveLocalAsset('cat-happy.gif'),
-  fallbackSources: ['/assets/cat-happy.gif', '/assets/happy-cat.gif', 'https://media.giphy.com/media/v6aOjy0Qo1fIA/giphy.gif'],
+  fallbackSources: ['/assets/cat-happy.gif', '/assets/happy-cat.gif', HAPPY_GIF_FALLBACK_URL],
   alt: 'A happy cat celebrating',
   fallbackEmoji: '😻',
 };

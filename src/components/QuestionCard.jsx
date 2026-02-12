@@ -46,11 +46,11 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
   const stickerLabel = chipText || (noCount > 0 ? `Escalation level ${noCount}` : 'Calm mode');
 
   return (
-    <article
-      className={`mew-shell question-card animate-card-in ${cardShakeClass || ''} ${yesTransitioning ? 'yes-transitioning' : ''}`.trim()}
-      aria-labelledby="valentine-question-title"
-   >
-
+  //   <article
+  //     className={`mew-shell question-card animate-card-in ${cardShakeClass || ''} ${yesTransitioning ? 'yes-transitioning' : ''}`.trim()}
+  //     aria-labelledby="valentine-question-title"
+  //  >
+<>
       <figure className="hero-frame">
         {!hasMediaError ? (
           <img
@@ -88,7 +88,7 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
 
       <header className="mt-7">
         <h1 id="valentine-question-title" className="text-balance text-center">
-          <span className={`headline-main ${isGlitchState ? 'text-glitch' : ''}`.trim()}>Will you be my Mewentine? 🐾💖</span>
+          <span className={`headline-main ${isGlitchState ? 'text-glitch' : ''}`.trim()}>Will you be my Mewentine?</span>
         </h1>
       </header>
 
@@ -126,6 +126,6 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
       </div>
 
       <p className="mt-7 text-center text-[0.96rem] font-medium uppercase tracking-[0.12em] text-primary/70">Made with cat drama and purpose</p>
-    </article>
+</>
   );
 }

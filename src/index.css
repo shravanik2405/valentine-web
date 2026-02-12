@@ -17,8 +17,8 @@
   --color-accent: 252 230 240;
   --color-focus: 149 106 130;
 
-  --radius-card: 2rem;
-  --radius-button: 1.1rem;
+  --radius-card: 0;
+  --radius-button: 0;
 
   --shadow-soft: 0 18px 38px -28px rgb(95 24 48 / 0.38);
   --shadow-lift: 0 30px 50px -26px rgb(76 16 40 / 0.44);
@@ -266,7 +266,7 @@
   }
 
   .question-card {
-    @apply rounded-card border border-white/70 bg-white/40 px-card pb-7 pt-6 shadow-glow backdrop-blur-md;
+    @apply border border-white/70 bg-white/40 px-card pb-7 pt-6 shadow-glow backdrop-blur-md;
   }
 
   .question-chip-wrap {
@@ -278,31 +278,54 @@
   }
 
   .question-chip {
-    @apply inline-flex items-center rounded-full border border-white/80 bg-white/90 px-4 py-1 text-sm font-semibold text-primary shadow-soft;
+    @apply inline-flex items-center border border-white/80 bg-white/90 px-4 py-1 text-sm font-semibold text-primary shadow-soft;
   }
 
   .hero-frame {
-    @apply relative mx-auto w-full max-w-[23rem] overflow-visible rounded-[2rem] border border-white/80 bg-white/45 p-1.5;
-    box-shadow: 0 16px 36px -28px rgb(125 36 67 / 0.68);
+    @apply relative mx-auto w-full max-w-[33rem] overflow-visible;
     aspect-ratio: 1 / 1;
   }
 
   .hero-media {
-    @apply h-full w-full rounded-[1.7rem] border border-white/70 object-cover object-center;
+    @apply h-full w-full object-cover object-center;
     background: linear-gradient(135deg, #f5cfc8, #f8e2d7);
+    clip-path: polygon(
+      0% 15%,
+      8% 2%,
+      18% 12%,
+      82% 12%,
+      92% 2%,
+      100% 15%,
+      100% 100%,
+      0% 100%
+    );
+    filter: drop-shadow(0 8px 18px rgb(125 36 67 / 0.38));
   }
 
   .hero-fallback-emoji {
-    @apply flex h-full w-full items-center justify-center rounded-[1.7rem] border border-white/70 bg-white/65 text-[4.3rem];
+    @apply flex h-full w-full items-center justify-center bg-white/65 text-[4.3rem];
+    clip-path: polygon(
+      0% 15%,
+      8% 2%,
+      18% 12%,
+      82% 12%,
+      92% 2%,
+      100% 15%,
+      100% 100%,
+      0% 100%
+    );
+    filter: drop-shadow(0 8px 18px rgb(125 36 67 / 0.38));
   }
 
   .hero-sticker {
-    @apply absolute -bottom-3 right-0 rounded-full border border-white/85 bg-white/95 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-primary shadow-soft;
+    @apply absolute -bottom-3 right-0 bg-white/95 py-1.5 pr-4 pl-5 text-xs font-semibold uppercase tracking-[0.06em] text-primary;
     transform: rotate(5deg);
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+    filter: drop-shadow(0 4px 8px rgb(95 24 48 / 0.22));
   }
 
   .headline-main {
-    @apply block text-balance text-[2.55rem] font-semibold leading-[1.02] text-ink sm:text-[3rem];
+    @apply block text-balance text-[1.25rem] font-semibold leading-[1.02] text-primary sm:text-[3rem];
   }
 
   .headline-accent {
@@ -310,11 +333,11 @@
   }
 
   .mini-chaos-note {
-    @apply mx-auto inline-flex rounded-full border border-primary/25 bg-white/80 px-3 py-1 text-sm font-semibold text-primary shadow-soft;
+    @apply mx-auto inline-flex border border-primary/25 bg-white/80 px-3 py-1 text-sm font-semibold text-primary shadow-soft;
   }
 
   .badge-pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/65 px-5 py-2 text-sm font-semibold uppercase tracking-[0.13em] text-primary shadow-[0_16px_32px_-24px_rgba(118,26,65,0.8)] backdrop-blur-sm;
+    @apply inline-flex items-center gap-2 border border-white/70 bg-white/65 px-5 py-2 text-sm font-semibold uppercase tracking-[0.13em] text-primary shadow-[0_16px_32px_-24px_rgba(118,26,65,0.8)] backdrop-blur-sm;
   }
 
   .compatibility-line {
@@ -323,6 +346,21 @@
 
   .compatibility-reason {
     @apply mt-1 text-[1.02rem] font-medium text-muted;
+  }
+
+  .btn-chamfer {
+    clip-path: polygon(
+      12px 0, calc(100% - 12px) 0,
+      100% 12px, 100% calc(100% - 12px),
+      calc(100% - 12px) 100%, 12px 100%,
+      0 calc(100% - 12px), 0 12px
+    );
+    filter: drop-shadow(0 6px 14px rgb(95 24 48 / 0.22));
+    transition: filter 200ms ease-out, transform 200ms ease-out, background-color 200ms ease-out, opacity 200ms ease-out;
+  }
+
+  .btn-chamfer:hover {
+    filter: drop-shadow(0 10px 20px rgb(76 16 40 / 0.32));
   }
 
   .yes-transitioning.question-card {
