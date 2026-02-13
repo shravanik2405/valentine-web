@@ -8,7 +8,7 @@ export const PHASES = Object.freeze({
 });
 
 const NO_PHASE_ORDER = [PHASES.ASK, PHASES.NO_LEVEL_1, PHASES.NO_LEVEL_2, PHASES.NO_LEVEL_3, PHASES.NO_LEVEL_4];
-const LOCAL_ASSET_URLS = import.meta.glob('../assets/*.{gif,mp3,wav,ogg,m4a,webm}', {
+const LOCAL_ASSET_URLS = import.meta.glob('../assets/*.{gif,png,jpg,jpeg,webp,mp3,wav,ogg,m4a,webm}', {
   eager: true,
   import: 'default',
 });
@@ -39,9 +39,9 @@ export const QUESTION_PHASE_CONTENT = {
     chip: 'Are you sure?',
     noLabel: 'No',
     media: {
-      src: resolveLocalAsset('cat-cry.gif'),
-      fallbackSources: ['/assets/cat-cry.gif', '/assets/sad-kitten.gif', 'https://media.giphy.com/media/OPU6wzx8JrHna/giphy.gif'],
-      alt: 'A crying kitten',
+      src: resolveLocalAsset('chikki-crying.jpg'),
+      fallbackSources: ['/assets/chikki-crying.jpg'],
+      alt: 'Crying Chikki peeking from a bag',
       fallbackEmoji: '🥺',
     },
   },
@@ -49,9 +49,9 @@ export const QUESTION_PHASE_CONTENT = {
     chip: 'This is unliveable.',
     noLabel: 'No',
     media: {
-      src: resolveLocalAsset('cat-surprised.gif'),
-      fallbackSources: ['/assets/cat-surprised.gif', '/assets/surprise-kitten.gif', 'https://media.giphy.com/media/5i7umUqAOYYEw/giphy.gif'],
-      alt: 'A surprised kitten',
+      src: resolveLocalAsset('chikki-surprised.jpg'),
+      fallbackSources: ['/assets/chikki-surprised.jpg'],
+      alt: 'Surprised Chikki with a wide-open expression',
       fallbackEmoji: '😿',
     },
   },
@@ -59,9 +59,9 @@ export const QUESTION_PHASE_CONTENT = {
     chip: 'Wrath unleashed.',
     noLabel: 'No',
     media: {
-      src: resolveLocalAsset('cat-angry.gif'),
-      fallbackSources: ['/assets/cat-angry.gif', '/assets/angry-kitten.gif', 'https://media.giphy.com/media/lJNoBCvQYp7nq/giphy.gif'],
-      alt: 'An angry kitten',
+      src: resolveLocalAsset('chikki-angry.jpg'),
+      fallbackSources: ['/assets/chikki-angry.jpg'],
+      alt: 'Angry Chikki in tunnel mode',
       fallbackEmoji: '😾',
     },
   },
@@ -69,9 +69,9 @@ export const QUESTION_PHASE_CONTENT = {
     chip: 'Wrath unleashed.',
     noLabel: 'Better say yes.',
     media: {
-      src: resolveLocalAsset('cat-angry.gif'),
-      fallbackSources: ['/assets/cat-angry.gif', '/assets/angry-kitten.gif', 'https://media.giphy.com/media/lJNoBCvQYp7nq/giphy.gif'],
-      alt: 'An angry kitten in full wrath mode',
+      src: resolveLocalAsset('chikki-laser.jpg'),
+      fallbackSources: ['/assets/chikki-laser.jpg'],
+      alt: 'Laser Chikki in full wrath mode',
       fallbackEmoji: '😾',
     },
   },

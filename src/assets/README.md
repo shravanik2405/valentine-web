@@ -2,9 +2,12 @@ Drop local media files in this folder.
 
 Expected GIF files:
 - `cat-happy.gif`
-- `cat-cry.gif`
-- `cat-surprised.gif`
-- `cat-angry.gif`
+
+Chikki escalation image files:
+- `chikki-crying.jpg` (no-level-1)
+- `chikki-surprised.jpg` (no-level-2)
+- `chikki-angry.jpg` (no-level-3)
+- `chikki-laser.jpg` (no-level-4)
 
 Expected audio files:
 - `sad.mp3`

@@ -51,7 +51,15 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
   //     aria-labelledby="valentine-question-title"
   //  >
 <>
-      <figure className="hero-frame">
+      <header className="mt-3">
+        <h1 id="valentine-question-title" className="text-balance text-center">
+          <span className={`headline-main headline-main-question ${isGlitchState ? 'text-glitch' : ''}`.trim()}>
+            Will you be my Mewentine?
+          </span>
+        </h1>
+      </header>
+
+      <figure className="hero-frame mt-6">
         {!hasMediaError ? (
           <img
             src={activeMediaSrc}
@@ -85,12 +93,6 @@ export function QuestionCard({ phase, onYes, onNo, noCount, yesTransitioning, ca
           ))}
         </div>
       </figure>
-
-      <header className="mt-7">
-        <h1 id="valentine-question-title" className="text-balance text-center">
-          <span className={`headline-main ${isGlitchState ? 'text-glitch' : ''}`.trim()}>Will you be my Mewentine?</span>
-        </h1>
-      </header>
 
       <div
         className={`mt-7 grid grid-cols-2 gap-3 transition-all duration-300 ${
